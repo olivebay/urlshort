@@ -18,20 +18,29 @@ package main
 
 	 mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
+	 //Build the YAMLHandlder using the mapHandler as the fallback
+	 yaml := `
+- path: /urlshort
+  url: https://github.com/gophercises/urlshort
+- path: /urlshort-final
+  url: https://github.com/gophercises/urlshort/tree/solution
+`
+
+	 yamHandler, err := urlshort.YAMLHandler([]byte(yaml), mapHandler)
 	 if err != nil {
 		 panic(err)
 	 }
 
-	 fmt.Println("Starting the server on :8000")
-	 http.ListenAndServe(":8181", mapHandler)
+	 fmt.Println("Starting the server on :8888")
+	 http.ListenAndServe(":8888", yamHandler)
  }
 
  func defaultMux() *http.ServeMux {
 	 mux := http.NewServeMux()
-	 mux.HandleFunc("/", hello)
+	 mux.HandleFunc("/hello", hello)
 	 return mux
  }
 
  func hello(w http.ResponseWriter, r *http.Request) {
-	 fmt.Fprintln(w, "Hello, world")
- }
+	fmt.Fprintln(w, "Hello, world!")
+}
