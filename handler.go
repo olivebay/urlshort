@@ -1,7 +1,6 @@
 package urlshort
 
 import (
-	"fmt"
 	"net/http"
 
 	"gopkg.in/yaml.v2"
@@ -60,7 +59,6 @@ func parseYAML(unparsedYaml []byte) ([]path, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(parsedYAML)
 	return parsedYAML, nil
 }
 
@@ -70,6 +68,5 @@ func buildMap(data []path) map[string]string {
 	for _, s := range data {
 		urlsMap[s.Path] = s.URL
 	}
-	fmt.Println(urlsMap)
 	return urlsMap
 }
