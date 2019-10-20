@@ -15,7 +15,17 @@ func main() {
 	jsonFlag := flag.String("json", "", "Specify a JSON file")
 	flag.Parse()
 
+	mux := defaultMux()
+
 	var fileHandler http.HandlerFunc
+
+	// Build the MapHandler using the mux as the fallback
+	pathsToUrls := map[string]string{
+		"/urlshort-godoc": "https://godoc.org/github.com/gophercises/urlshort",
+		"/yaml-godoc":     "https://godoc.org/gopkg.in/yaml.v2",
+	}
+
+	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
 	if *yamlFlag != "" {
 		yamlFile, err := ioutil.ReadFile(*yamlFlag)
@@ -23,7 +33,7 @@ func main() {
 			fmt.Println("File reading error", err)
 			return
 		}
-		fileHandler, err = urlshort.YAMLHandler([]byte(yamlFile))
+		fileHandler, err = urlshort.YAMLHandler([]byte(yamlFile), mapHandler)
 		if err != nil {
 			panic(err)
 		}
@@ -35,7 +45,7 @@ func main() {
 			fmt.Println("File reading error", err)
 			return
 		}
-		fileHandler, err = urlshort.JSONHandler([]byte(jsonFile))
+		fileHandler, err = urlshort.JSONHandler([]byte(jsonFile), mapHandler)
 		if err != nil {
 			panic(err)
 		}
@@ -47,7 +57,7 @@ func main() {
 
 func defaultMux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/hello", hello)
+	mux.HandleFunc("/", hello)
 	return mux
 }
 
