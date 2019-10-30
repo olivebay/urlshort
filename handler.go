@@ -1,27 +1,26 @@
 package urlshort
 
 import (
-	"fmt"
-	"net/http"
-
 	"encoding/json"
+	"net/http"
 
 	"gopkg.in/yaml.v2"
 )
 
-// MapHandler will return an http.HandlerFunc (which also
-// implements http.Handler) that will attempt to map any
-// paths (keys in the map) to their corresponding URL (values
-// that each key in the map points to, in string format).
+// MapHandler map any paths (keys in the map) to their corresponding URL
+// (values that each key in the map points to, in string format).
+//
 // If the path is not provided in the map, then the fallback
 // http.Handler will be called instead.
-func MapHandler(pathsToUrls map[string]string) http.HandlerFunc {
+//
+func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if dest, ok := pathsToUrls[path]; ok {
 			http.Redirect(w, r, dest, http.StatusFound)
 			return
 		}
+		fallback.ServeHTTP(w, r)
 	})
 }
 
@@ -37,25 +36,25 @@ func MapHandler(pathsToUrls map[string]string) http.HandlerFunc {
 //
 // The only errors that can be returned all related to having
 // invalid YAML data.
-func YAMLHandler(yaml []byte) (http.HandlerFunc, error) {
+func YAMLHandler(yaml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	parsedYaml, err := parseYAML(yaml)
 
 	if err != nil {
 		return nil, err
 	}
 	pathMap := buildMap(parsedYaml)
-	return MapHandler(pathMap), nil
+	return MapHandler(pathMap, fallback), nil
 }
 
 // JSONHandler parses JSON data into a map, MapHandler then maps the path to the url
-func JSONHandler(json []byte) (http.HandlerFunc, error) {
+func JSONHandler(json []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	parsedJSON, err := parseJSON(json)
-	fmt.Println(string(json))
+
 	if err != nil {
 		return nil, err
 	}
-	pathMap := buildMapJSON(parsedJSON)
-	return MapHandler(pathMap), nil
+	pathMap := buildMap(parsedJSON)
+	return MapHandler(pathMap, fallback), nil
 }
 
 type mapper struct {
@@ -63,6 +62,7 @@ type mapper struct {
 	URL  string `yaml:"url"  json:"url"`
 }
 
+// Unmarshal YAML into a mapper struct
 func parseYAML(data []byte) ([]mapper, error) {
 	var parsedYAML []mapper
 
@@ -73,6 +73,7 @@ func parseYAML(data []byte) ([]mapper, error) {
 	return parsedYAML, nil
 }
 
+// Unmarshal JSON into a mapper struct
 func parseJSON(data []byte) ([]mapper, error) {
 	var parsedJSON []mapper
 
@@ -83,16 +84,8 @@ func parseJSON(data []byte) ([]mapper, error) {
 	return parsedJSON, nil
 }
 
+// buildMap takes YAML or JSON data and builds a map of the data
 func buildMap(data []mapper) map[string]string {
-	urlsMap := make(map[string]string)
-
-	for _, s := range data {
-		urlsMap[s.Path] = s.URL
-	}
-	return urlsMap
-}
-
-func buildMapJSON(data []mapper) map[string]string {
 	urlsMap := make(map[string]string)
 
 	for _, s := range data {
